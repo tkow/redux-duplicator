@@ -1,6 +1,6 @@
 # Concept
 
-Genrate reducers and actionCreators their templates.
+Genrate reducers and actionCreators from their templates.
 
 See https://redux.js.org/recipes/structuring-reducers/reusing-reducer-logic .
 
