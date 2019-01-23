@@ -1,3 +1,51 @@
+# Concept
+
+Genrate reducers and actionCreators their templates.
+
+See https://redux.js.org/recipes/structuring-reducers/reusing-reducer-logic .
+
+This has not been launched.
+Develoment is undertaking now.
+
+# Plan for Usage
+
+```typescript
+  /**
+   * you need define original ationTypes and generateReducer
+   * and optional generator Of ActionCreators
+   */
+  const _actionTypes = {
+    HOGE: 'HOGE',
+    FUGA: 'FUGA'
+  }
+
+  const generateActionCreators = (actionTypes) => ({
+    a: generateActionCreator1(actionTypes.HOGE),
+    b: generateActionCreator2(actionTypes.FUGA)
+  })
+
+  const generateReducer = <S,AT,Action>(initialState:S,actionTypes:AT) => {
+    return function reducer(state:S,action:Action) {
+      switch(actionTypes){
+        ...
+      }
+    }
+  }
+
+  const {
+    actionTypes,
+    reducer,
+    actionCreators
+  } = duplicateRedux('NameSpace/')(
+    initialState,
+    _actionTypes,
+    generateReducer,
+    generateActionCreators
+  )
+
+```
+generateActionCreator1... , may be used function from another library like redux-actions.
+
 # TypeScript library starter
 
 [![styled with prettier](https://img.shields.io/badge/styled_with-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
