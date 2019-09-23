@@ -14,24 +14,27 @@ export const recreateActionTypes = <T extends { [key: string]: string }>(
 
 export const recreateActionCreators = <
   ActionCreators extends {
-    [key: string]: <Args, Action extends { type: string }>(...args: Args[]) => Action
+    [key: string]: (...args: any[]) => Action
   }
 >(
   actionCreators: ActionCreators,
   prefix: string
 ) => {
-  return Object.keys(actionCreators).reduce((records, key) => {
-    return {
-      ...records,
-      [key]: <T, Action extends { type: string }>(...args: T[]): Action => {
-        const action = actionCreators[key](...args)
-        return {
-          ...action,
-          type: `${prefix}${action.type}`
-        } as Action
+  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
+    (records, key) => {
+      return {
+        ...records,
+        [key]: (...args: any[]): Action => {
+          const action = actionCreators[key](...args)
+          return {
+            ...action,
+            type: `${prefix}${action.type}`
+          } as Action
+        }
       }
-    }
-  }, {})
+    },
+    {} as { [key in keyof ActionCreators]: ActionCreators[key] }
+  )
 }
 
 export const reuseReducer = <S, A extends Action<any>>(
@@ -56,7 +59,7 @@ export const reuseReducer = <S, A extends Action<any>>(
 export default function duplicateRedux<
   ActionTypes extends { [key: string]: string },
   ActionCreators extends {
-    [key: string]: <Args, Action extends { type: string }>(...args: Args[]) => Action
+    [key: string]: (...args: any[]) => Action
   },
   S,
   A extends Action<any>
@@ -71,10 +74,14 @@ export default function duplicateRedux<
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
   }
-) {
+): {
+  actionTypes: ActionTypes
+  actionCreators: ActionCreators
+  reducer: Reducer<S, A>
+} {
   return {
     reducer: reuseReducer(reducer, prefix),
-    actionTypes: recreateActionTypes(actionTypes, prefix),
-    actionCreators: recreateActionCreators(actionCreators, prefix)
+    actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
+    actionCreators: recreateActionCreators(actionCreators, prefix) as ActionCreators
   }
 }
