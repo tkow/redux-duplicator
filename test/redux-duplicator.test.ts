@@ -44,7 +44,7 @@ describe('Reducer Test', () => {
   it('rewrite reducer match', () => {
     const result = reducer('', { type: 'TEST/SET_ID', payload: 'fuga' })
     expect(result).toEqual('fuga')
-    const miss = reducer('initital', { type: 'TEST/SET_ID', payload: 'fuga' })
+    const miss = reducer('initital', { type: 'SET_ID', payload: 'fuga' })
     expect(miss).toEqual('initital')
   })
 })

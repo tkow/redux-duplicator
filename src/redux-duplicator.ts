@@ -41,7 +41,7 @@ export const reuseReducer = <S, A extends Action<any>>(
   reducer: Reducer<S, A>,
   prefix: string
 ): Reducer<S, A> => {
-  const matchPattern = new RegExp(`^${prefix}`)
+  const matchPattern = new RegExp(`^${prefix}(.*)`)
   return function(state: S, action: A) {
     const matcher = matchPattern.exec(action.type)
     if (matcher) {
