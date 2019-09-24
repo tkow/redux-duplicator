@@ -9,7 +9,8 @@ const initialState = {
 }
 
 const _actionTypes = {
-  SET_ID: `SET_ID`
+  SET_ID: `SET_ID`,
+  FUGA_ID: `FUGA_ID`
 }
 
 const setId = createAction(_actionTypes.SET_ID, (payload: string) => payload)
