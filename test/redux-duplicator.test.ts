@@ -1,17 +1,21 @@
 import duplicateRedux from '../src/redux-duplicator'
 import { createAction, handleActions } from 'redux-actions'
-/**
- * Dummy test
- */
 
 const initialState = {
   id: ''
 }
 
-const _actionTypes = {
+const _actionBUndle = {
   SET_ID: `SET_ID`,
-  FUGA_ID: `FUGA_ID`
+  FUGA_ID: `FUGA_ID`,
+  default: {
+    fuga: () => {
+      return ''
+    }
+  }
 }
+
+const { default: a, ..._actionTypes } = _actionBUndle
 
 const setId = createAction(_actionTypes.SET_ID, (payload: string) => payload)
 
@@ -31,7 +35,7 @@ const nameSpace = 'TEST/'
 
 const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
   reducer: id,
-  actionTypes: _actionTypes,
+  actionTypes: _actionTypes as { [key: string]: string },
   actionCreators: _actionCreators
 })
 

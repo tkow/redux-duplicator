@@ -1,6 +1,8 @@
 import { Reducer, Action } from 'redux'
 
-export const recreateActionTypes = <T extends { [key: string]: string }>(
+// WARNING: ActionTypesはdestructuring assignmentの場合、
+// 型推論が上手く機能しない。
+export const recreateActionTypes = <T extends { [key: string]: any }>(
   actionTypes: T,
   prefix: string
 ) => {
@@ -56,8 +58,10 @@ export const reuseReducer = <S, A extends Action<any>>(
   } as Reducer<S, A>
 }
 
+// WARNING: ActionTypesはdestructuring assignmentの場合、
+// 型推論が上手く機能しない。
 export default function duplicateRedux<
-  ActionTypes extends { [key: string]: string },
+  ActionTypes extends { [key: string]: any },
   ActionCreators extends {
     [key: string]: (...args: any[]) => Action
   },
