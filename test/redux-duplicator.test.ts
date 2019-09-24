@@ -5,7 +5,7 @@ const initialState = {
   id: ''
 }
 
-const _actionBUndle = {
+const _actionBundle = {
   SET_ID: `SET_ID`,
   FUGA_ID: `FUGA_ID`,
   default: {
@@ -15,7 +15,7 @@ const _actionBUndle = {
   }
 }
 
-const { default: a, ..._actionTypes } = _actionBUndle
+const { default: a, ..._actionTypes } = _actionBundle
 
 const setId = createAction(_actionTypes.SET_ID, (payload: string) => payload)
 
@@ -35,7 +35,7 @@ const nameSpace = 'TEST/'
 
 const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
   reducer: id,
-  actionTypes: _actionTypes as { [key: string]: string },
+  actionTypes: _actionTypes,
   actionCreators: _actionCreators
 })
 

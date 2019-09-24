@@ -2,14 +2,14 @@ import { Reducer, Action } from 'redux'
 
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
-export const recreateActionTypes = <T extends { [key: string]: any }>(
+export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
   actionTypes: T,
   prefix: string
 ) => {
   return Object.keys(actionTypes).reduce((data, key) => {
     return {
       ...data,
-      [key]: `${prefix}${actionTypes[key]}`
+      [key]: `${prefix}${actionTypes[key as keyof T]}`
     }
   }, {}) as { [key in keyof T]: string }
 }
@@ -61,7 +61,7 @@ export const reuseReducer = <S, A extends Action<any>>(
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export default function duplicateRedux<
-  ActionTypes extends { [key: string]: any },
+  ActionTypes extends { [key in keyof ActionTypes]: string },
   ActionCreators extends {
     [key: string]: (...args: any[]) => Action
   },
