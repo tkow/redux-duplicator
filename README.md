@@ -4,9 +4,6 @@ Genrate reducers and actionCreators from their templates.
 
 See https://redux.js.org/recipes/structuring-reducers/reusing-reducer-logic .
 
-This has not been launched.
-Develoment is undertaking now.
-
 # Usage
 
 ```typescript
