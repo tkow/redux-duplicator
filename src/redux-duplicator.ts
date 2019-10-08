@@ -1,4 +1,5 @@
 import { Reducer, Action } from 'redux'
+import { ActionMeta } from 'redux-actions'
 
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
@@ -16,22 +17,40 @@ export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
 
 export const recreateActionCreators = <
   ActionCreators extends {
-    [key: string]: (...args: any[]) => Action
-  }
+    [key: string]: (...args: any[]) => Action | ActionMeta<any, R>
+  },
+  T extends {} = any,
+  R extends {} = any
 >(
   actionCreators: ActionCreators,
-  prefix: string
+  prefix: string,
+  metaCreator?: (meta: T) => R
 ) => {
   return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
     (records, key) => {
       return {
         ...records,
-        [key]: (...args: any[]): Action => {
+        [key]: (...args: any[]): Action | ActionMeta<any, R> => {
+          let meta = metaCreator ? metaCreator(args.pop()) : {}
           const action = actionCreators[key](...args)
-          return {
-            ...action,
-            type: `${prefix}${action.type}`
-          } as Action
+          if ('meta' in action) {
+            meta = {
+              ...action.meta,
+              ...meta
+            }
+          }
+          if (Object.keys(meta).length > 0) {
+            return {
+              ...action,
+              type: `${prefix}${action.type}`,
+              meta
+            } as ActionMeta<any, R>
+          } else {
+            return {
+              ...action,
+              type: `${prefix}${action.type}`
+            } as Action
+          }
         }
       }
     },
