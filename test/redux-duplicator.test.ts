@@ -1,4 +1,4 @@
-import duplicateRedux from '../src/redux-duplicator'
+import duplicateRedux, { duplicateWithMetaRedux } from '../src/redux-duplicator'
 import { createAction, handleActions } from 'redux-actions'
 
 const initialState = {
@@ -38,6 +38,22 @@ const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
   actionTypes: _actionTypes,
   actionCreators: _actionCreators
 })
+
+const { reducer: _, actionTypes: __, actionCreators: actionMetaCreators } = duplicateWithMetaRedux(
+  nameSpace,
+  {
+    reducer: id,
+    actionTypes: _actionTypes,
+    actionCreators: _actionCreators
+  },
+  (str: string) => ({
+    id: str
+  })
+)
+
+const z = actionMetaCreators.setId('t', 'd')
+
+console.log(z.meta.id)
 
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {

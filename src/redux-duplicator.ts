@@ -22,7 +22,7 @@ export const recreateActionCreators = <
   actionCreators: ActionCreators,
   prefix: string
 ) => {
-  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
+  return Object.keys(actionCreators).reduce(
     (records, key) => {
       return {
         ...records,
@@ -37,6 +37,52 @@ export const recreateActionCreators = <
     },
     {} as { [key in keyof ActionCreators]: ActionCreators[key] }
   )
+}
+
+export const recreateActionMetaCreators = <
+  ActionCreators extends {
+    [key: string]: (...args: any[]) => Action
+  },
+  ExtMetaArgs extends any,
+  ExtMetaResult extends object
+>(
+  actionCreators: ActionCreators,
+  prefix: string,
+  metaCreator: (args: ExtMetaArgs) => ExtMetaResult
+) => {
+  return Object.keys(actionCreators).reduce(
+    (records, key) => {
+      return {
+        ...records,
+        [key]: (...args: any[]): Action => {
+          const action = actionCreators[key](...args)
+          return {
+            ...action,
+            type: `${prefix}${action.type}`
+          } as Action
+        }
+      }
+    },
+    {} as {
+      [key in keyof ActionCreators]: IActionMetaCreator<
+        ActionCreators[key],
+        {
+          args: ExtMetaArgs
+          result: ExtMetaResult
+        }
+      >
+    }
+  )
+}
+
+interface IActionMetaCreator<
+  F extends (...args: any[]) => Action<any>,
+  MetaSetting extends {
+    args: any
+    result: object
+  }
+> {
+  (m: MetaSetting['args'], ...args: Parameters<F>): ReturnType<F> & { meta: MetaSetting['result'] }
 }
 
 export const reuseReducer = <S, A extends Action<any>>(
@@ -78,14 +124,40 @@ export default function duplicateRedux<
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
   }
-): {
-  actionTypes: ActionTypes
-  actionCreators: ActionCreators
-  reducer: Reducer<S, A>
-} {
+) {
   return {
     reducer: reuseReducer(reducer, prefix),
     actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: recreateActionCreators(actionCreators, prefix) as ActionCreators
+    actionCreators: recreateActionCreators(actionCreators, prefix)
+  }
+}
+
+// ToDo: default exportに統合する
+export function duplicateWithMetaRedux<
+  ActionTypes extends { [key in keyof ActionTypes]: string },
+  ActionCreators extends {
+    [key: string]: (...args: any[]) => Action
+  },
+  S,
+  A extends Action<any>,
+  ExtMetaArgs extends any,
+  ExtMetaResult extends object
+>(
+  prefix: string,
+  {
+    actionTypes,
+    actionCreators,
+    reducer
+  }: {
+    actionTypes: ActionTypes
+    actionCreators: ActionCreators
+    reducer: Reducer<S, A>
+  },
+  metaCreator: (args: ExtMetaArgs) => ExtMetaResult
+) {
+  return {
+    reducer: reuseReducer(reducer, prefix),
+    actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
+    actionCreators: recreateActionMetaCreators(actionCreators, prefix, metaCreator)
   }
 }
