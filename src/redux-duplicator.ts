@@ -21,15 +21,22 @@ export const recreateActionCreators = <
   ActionCreators extends {
     [key in keyof ActionCreators]: ActionCreator<any, any, any>
   },
-  MetaArg = any,
-  AppendMeta extends {} = any
+  NewActionCreators extends {
+    [key in keyof ActionCreators]: ActionCreator<
+      AppendedTuppleArguments<Parameters<ActionCreators[key]>, Parameters<MetaCreator>[0]>,
+      ReturnType<ActionCreators[key]>,
+      ReturnType<MetaCreator> | undefined
+    >
+  },
+  MetaCreator extends <T, R extends {}>(meta: T) => R
 >(
   actionCreators: ActionCreators,
   prefix: string,
-  metaCreator?: (meta: MetaArg) => AppendMeta
-) => {
-  return Object.keys(actionCreators).reduce<ResultActionCreators>(
-    (records, key) => {
+  metaCreator?: MetaCreator
+): NewActionCreators => {
+  type MetaArg = Parameters<MetaCreator>[0]
+  return Object.keys(actionCreators).reduce<NewActionCreators>(
+    (records, key: keyof NewActionCreators) => {
       return {
         ...records,
         [key]: (
@@ -58,7 +65,7 @@ export const recreateActionCreators = <
         }
       }
     },
-    {} as ResultActionCreators
+    {} as NewActionCreators
   )
 }
 
@@ -125,6 +132,6 @@ export default function duplicateRedux<
   return {
     reducer: reuseReducer(reducer, prefix),
     actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: recreateActionCreators(actionCreators, prefix, metaCreator)
+    actionCreators: recreateActionCreators<ActionCreators>(actionCreators, prefix, metaCreator)
   }
 }
