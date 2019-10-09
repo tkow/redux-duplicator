@@ -44,9 +44,16 @@ const { reducer: _, actionTypes: __, actionCreators: metaActionCreators } = dupl
   {
     reducer: id,
     actionTypes: _actionTypes,
-    actionCreators: _actionCreators
+    actionCreators: _actionCreators,
+    metaCreator: (id: string) => {
+      return {
+        id
+      }
+    }
   }
 )
+
+metaActionCreators.setId('test', 'test')
 
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {

@@ -17,32 +17,24 @@ export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
   }, {}) as { [key in keyof T]: string }
 }
 
+type ddd = Parameters<(a: 1, b: 2, c: 3) => void>
+
 export const recreateActionCreators = <
-  ActionCreators extends {
-    [key in keyof ActionCreators]: ActionCreator<any, any, any>
-  },
-  NewActionCreators extends {
-    [key in keyof ActionCreators]: ActionCreator<
-      AppendedTuppleArguments<Parameters<ActionCreators[key]>, Parameters<MetaCreator>[0]>,
-      ReturnType<ActionCreators[key]>,
-      ReturnType<MetaCreator> | undefined
-    >
-  },
-  MetaCreator extends <T, R extends {}>(meta: T) => R
+  ActionCreators extends IActionCreators<ActionCreators, any, any>,
+  ExtMetaArg,
+  ExtMeta
 >(
   actionCreators: ActionCreators,
   prefix: string,
-  metaCreator?: MetaCreator
-): NewActionCreators => {
-  type MetaArg = Parameters<MetaCreator>[0]
-  return Object.keys(actionCreators).reduce<NewActionCreators>(
-    (records, key: keyof NewActionCreators) => {
+  metaCreator?: (meta: ExtMetaArg) => ExtMeta
+) => {
+  return (Object.keys(actionCreators) as (keyof ActionCreators)[]).reduce(
+    (records, key) => {
       return {
         ...records,
-        [key]: (
-          ...args: AppendedTuppleArguments<Parameters<ActionCreators[typeof key]>, MetaArg>
-        ) => {
-          let meta = metaCreator ? metaCreator(args.pop() as MetaArg) : {}
+        // @ts-ignore
+        [key]: (...args: Concat<Parameters<ActionCreators[typeof key]>, [ExtMetaArg]>) => {
+          let meta = metaCreator ? metaCreator(args.pop() as ExtMetaArg) : {}
           const action = actionCreators[key](...args)
           if ((action as ActionMeta<any, any>).meta) {
             meta = {
@@ -55,17 +47,23 @@ export const recreateActionCreators = <
               ...action,
               type: `${prefix}${action.type}`,
               meta
-            }
+            } as const
           } else {
             return {
               ...action,
               type: `${prefix}${action.type}`
-            }
+            } as const
           }
         }
-      }
+      } as const
     },
-    {} as NewActionCreators
+    {} as {
+      [key in keyof ActionCreators]: IActionCreator<
+        Concat<Parameters<(a: 1, b: 2, c: 3) => void>, [string]>,
+        string,
+        string
+      >
+    }
   )
 }
 
@@ -88,29 +86,31 @@ export const reuseReducer = <S, A extends Action<any>>(
   } as Reducer<S, A>
 }
 
-type ActionCreator<
+type ActionCreator<Args extends any[], Payload extends {}> = (...args: Args) => Action<Payload>
+
+type MetaActionCreator<
   Args extends any[],
   Payload extends {},
   Meta extends {} | undefined = undefined
-> = (...args: Args) => Meta extends undefined ? Action<Payload> : ActionMeta<any, Meta>
+> = (...args: Args) => ActionMeta<Payload, Meta>
+
+type IActionCreator<Args extends any[], Payload = {}, Meta = undefined> =
+  | ActionCreator<Args, Payload>
+  | MetaActionCreator<Args, Payload, Meta>
+
+type IActionCreators<ActionCreators, Args extends any[], Payload = {}, Meta = undefined> = {
+  [key in keyof ActionCreators]: IActionCreator<Args, Payload, Meta>
+}
 
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export default function duplicateRedux<
   ActionTypes extends { [key in keyof ActionTypes]: string },
-  ActionCreators extends {
-    [key in keyof ActionCreators]: ActionCreator<any, any, any>
-  },
+  ActionCreators extends IActionCreators<ActionCreators, any, any, any>,
   S,
   A extends Action<any>,
-  MetaCreator extends <T, R extends {}>(meta: T) => R,
-  NewActionCreators extends {
-    [key in keyof ActionCreators]: ActionCreator<
-      AppendedTuppleArguments<Parameters<ActionCreators[key]>, Parameters<MetaCreator>[0]>,
-      ReturnType<ActionCreators[key]>,
-      ReturnType<MetaCreator> | undefined
-    >
-  }
+  ExtMetaArg,
+  ExtMeta
 >(
   prefix: string,
   {
@@ -122,16 +122,12 @@ export default function duplicateRedux<
     actionTypes: ActionTypes
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
-    metaCreator?: MetaCreator
+    metaCreator?: (meta: ExtMetaArg) => ExtMeta
   }
-): {
-  actionTypes: ActionTypes
-  actionCreators: NewActionCreators
-  reducer: Reducer<S, A>
-} {
+) {
   return {
     reducer: reuseReducer(reducer, prefix),
     actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: recreateActionCreators<ActionCreators>(actionCreators, prefix, metaCreator)
-  }
+    actionCreators: recreateActionCreators(actionCreators, prefix, metaCreator)
+  } as const
 }
