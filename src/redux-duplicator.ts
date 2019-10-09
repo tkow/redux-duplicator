@@ -1,6 +1,8 @@
 import { Reducer, Action } from 'redux'
-import { ActionMeta } from 'redux-actions'
 
+export interface ActionMeta<Payload, Meta> extends Action<Payload> {
+  meta: Meta
+}
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
@@ -17,44 +19,46 @@ export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
 
 export const recreateActionCreators = <
   ActionCreators extends {
-    [key: string]: (...args: any[]) => Action | ActionMeta<any, R>
+    [key in keyof ActionCreators]: ActionCreator<any, any, any>
   },
-  T extends {} = any,
-  R extends {} = any
+  MetaArg = any,
+  AppendMeta extends {} = any
 >(
   actionCreators: ActionCreators,
   prefix: string,
-  metaCreator?: (meta: T) => R
+  metaCreator?: (meta: MetaArg) => AppendMeta
 ) => {
-  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
+  return Object.keys(actionCreators).reduce<ResultActionCreators>(
     (records, key) => {
       return {
         ...records,
-        [key]: (...args: any[]): Action | ActionMeta<any, R> => {
-          let meta = metaCreator ? metaCreator(args.pop()) : {}
+        [key]: (
+          ...args: AppendedTuppleArguments<Parameters<ActionCreators[typeof key]>, MetaArg>
+        ) => {
+          let meta = metaCreator ? metaCreator(args.pop() as MetaArg) : {}
           const action = actionCreators[key](...args)
-          if ('meta' in action) {
+          if ((action as ActionMeta<any, any>).meta) {
             meta = {
-              ...action.meta,
+              ...(action as ActionMeta<any, any>).meta,
               ...meta
             }
           }
-          if (Object.keys(meta).length > 0) {
+          if (metaCreator) {
             return {
               ...action,
               type: `${prefix}${action.type}`,
               meta
-            } as ActionMeta<any, R>
+            }
           } else {
             return {
               ...action,
               type: `${prefix}${action.type}`
-            } as Action
+            }
           }
         }
       }
     },
-    {} as { [key in keyof ActionCreators]: ActionCreators[key] }
+    {} as ResultActionCreators
   )
 }
 
@@ -77,34 +81,50 @@ export const reuseReducer = <S, A extends Action<any>>(
   } as Reducer<S, A>
 }
 
+type ActionCreator<
+  Args extends any[],
+  Payload extends {},
+  Meta extends {} | undefined = undefined
+> = (...args: Args) => Meta extends undefined ? Action<Payload> : ActionMeta<any, Meta>
+
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export default function duplicateRedux<
   ActionTypes extends { [key in keyof ActionTypes]: string },
   ActionCreators extends {
-    [key: string]: (...args: any[]) => Action
+    [key in keyof ActionCreators]: ActionCreator<any, any, any>
   },
   S,
-  A extends Action<any>
+  A extends Action<any>,
+  MetaCreator extends <T, R extends {}>(meta: T) => R,
+  NewActionCreators extends {
+    [key in keyof ActionCreators]: ActionCreator<
+      AppendedTuppleArguments<Parameters<ActionCreators[key]>, Parameters<MetaCreator>[0]>,
+      ReturnType<ActionCreators[key]>,
+      ReturnType<MetaCreator> | undefined
+    >
+  }
 >(
   prefix: string,
   {
     actionTypes,
     actionCreators,
-    reducer
+    reducer,
+    metaCreator
   }: {
     actionTypes: ActionTypes
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
+    metaCreator?: MetaCreator
   }
 ): {
   actionTypes: ActionTypes
-  actionCreators: ActionCreators
+  actionCreators: NewActionCreators
   reducer: Reducer<S, A>
 } {
   return {
     reducer: reuseReducer(reducer, prefix),
     actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: recreateActionCreators(actionCreators, prefix) as ActionCreators
+    actionCreators: recreateActionCreators(actionCreators, prefix, metaCreator)
   }
 }
