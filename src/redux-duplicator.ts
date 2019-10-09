@@ -1,8 +1,5 @@
 import { Reducer, Action } from 'redux'
 
-export interface ActionMeta<Payload, Meta> extends Action<Payload> {
-  meta: Meta
-}
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
@@ -17,53 +14,28 @@ export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
   }, {}) as { [key in keyof T]: string }
 }
 
-type ddd = Parameters<(a: 1, b: 2, c: 3) => void>
-
 export const recreateActionCreators = <
-  ActionCreators extends IActionCreators<ActionCreators, any, any>,
-  ExtMetaArg,
-  ExtMeta
+  ActionCreators extends {
+    [key: string]: (...args: any[]) => Action
+  }
 >(
   actionCreators: ActionCreators,
-  prefix: string,
-  metaCreator?: (meta: ExtMetaArg) => ExtMeta
+  prefix: string
 ) => {
-  return (Object.keys(actionCreators) as (keyof ActionCreators)[]).reduce(
+  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
     (records, key) => {
       return {
         ...records,
-        // @ts-ignore
-        [key]: (...args: Concat<Parameters<ActionCreators[typeof key]>, [ExtMetaArg]>) => {
-          let meta = metaCreator ? metaCreator(args.pop() as ExtMetaArg) : {}
+        [key]: (...args: any[]): Action => {
           const action = actionCreators[key](...args)
-          if ((action as ActionMeta<any, any>).meta) {
-            meta = {
-              ...(action as ActionMeta<any, any>).meta,
-              ...meta
-            }
-          }
-          if (metaCreator) {
-            return {
-              ...action,
-              type: `${prefix}${action.type}`,
-              meta
-            } as const
-          } else {
-            return {
-              ...action,
-              type: `${prefix}${action.type}`
-            } as const
-          }
+          return {
+            ...action,
+            type: `${prefix}${action.type}`
+          } as Action
         }
-      } as const
+      }
     },
-    {} as {
-      [key in keyof ActionCreators]: IActionCreator<
-        Concat<Parameters<(a: 1, b: 2, c: 3) => void>, [string]>,
-        string,
-        string
-      >
-    }
+    {} as { [key in keyof ActionCreators]: ActionCreators[key] }
   )
 }
 
@@ -86,48 +58,34 @@ export const reuseReducer = <S, A extends Action<any>>(
   } as Reducer<S, A>
 }
 
-type ActionCreator<Args extends any[], Payload extends {}> = (...args: Args) => Action<Payload>
-
-type MetaActionCreator<
-  Args extends any[],
-  Payload extends {},
-  Meta extends {} | undefined = undefined
-> = (...args: Args) => ActionMeta<Payload, Meta>
-
-type IActionCreator<Args extends any[], Payload = {}, Meta = undefined> =
-  | ActionCreator<Args, Payload>
-  | MetaActionCreator<Args, Payload, Meta>
-
-type IActionCreators<ActionCreators, Args extends any[], Payload = {}, Meta = undefined> = {
-  [key in keyof ActionCreators]: IActionCreator<Args, Payload, Meta>
-}
-
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
 export default function duplicateRedux<
   ActionTypes extends { [key in keyof ActionTypes]: string },
-  ActionCreators extends IActionCreators<ActionCreators, any, any, any>,
+  ActionCreators extends {
+    [key: string]: (...args: any[]) => Action
+  },
   S,
-  A extends Action<any>,
-  ExtMetaArg,
-  ExtMeta
+  A extends Action<any>
 >(
   prefix: string,
   {
     actionTypes,
     actionCreators,
-    reducer,
-    metaCreator
+    reducer
   }: {
     actionTypes: ActionTypes
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
-    metaCreator?: (meta: ExtMetaArg) => ExtMeta
   }
-) {
+): {
+  actionTypes: ActionTypes
+  actionCreators: ActionCreators
+  reducer: Reducer<S, A>
+} {
   return {
     reducer: reuseReducer(reducer, prefix),
     actionTypes: recreateActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: recreateActionCreators(actionCreators, prefix, metaCreator)
-  } as const
+    actionCreators: recreateActionCreators(actionCreators, prefix) as ActionCreators
+  }
 }

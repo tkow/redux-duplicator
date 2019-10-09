@@ -39,22 +39,6 @@ const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
   actionCreators: _actionCreators
 })
 
-const { reducer: _, actionTypes: __, actionCreators: metaActionCreators } = duplicateRedux(
-  nameSpace,
-  {
-    reducer: id,
-    actionTypes: _actionTypes,
-    actionCreators: _actionCreators,
-    metaCreator: (id: string) => {
-      return {
-        id
-      }
-    }
-  }
-)
-
-metaActionCreators.setId('test', 'test')
-
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {
     expect(actionTypes.SET_ID === 'TEST/SET_ID').toBeTruthy()
@@ -72,11 +56,6 @@ describe('Reducer Test', () => {
 
 describe('actionCreators Test', () => {
   it('rewrite actionCreators type', () => {
-    const type = actionCreators.setId('test').type
-    expect(type).toEqual('TEST/SET_ID')
-  })
-
-  it('extende meta params last args', () => {
     const type = actionCreators.setId('test').type
     expect(type).toEqual('TEST/SET_ID')
   })
