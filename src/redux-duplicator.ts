@@ -1,4 +1,8 @@
-import { Reducer, Action } from 'redux'
+import { Reducer, Action as ActionType } from 'redux'
+
+type Action<T = any, Type extends string = string> = {
+  type: Type
+} & T
 
 // WARNING: ActionTypesはdestructuring assignmentの場合、
 // 型推論が上手く機能しない。
@@ -55,11 +59,21 @@ export const recreateActionMetaCreators = <
       return {
         ...records,
         [key]: (...args: any[]): Action => {
+          let meta: object = metaCreator ? metaCreator(args.pop() as ExtMetaArgs) : {}
           const action = actionCreators[key](...args)
+          if ((action as Action<{ meta: any }>).meta) {
+            meta = {
+              ...action,
+              ...(action as Action<{ meta: any }>).meta,
+              type: `${prefix}${action.type}`,
+              ...meta
+            } as Action
+          }
           return {
             ...action,
-            type: `${prefix}${action.type}`
-          } as Action
+            type: `${prefix}${action.type}`,
+            meta
+          } as const
         }
       }
     },
@@ -85,7 +99,7 @@ interface IActionMetaCreator<
   (m: MetaSetting['args'], ...args: Parameters<F>): ReturnType<F> & { meta: MetaSetting['result'] }
 }
 
-export const reuseReducer = <S, A extends Action<any>>(
+export const reuseReducer = <S, A extends ActionType<any>>(
   reducer: Reducer<S, A>,
   prefix: string
 ): Reducer<S, A> => {
@@ -112,7 +126,7 @@ export default function duplicateRedux<
     [key: string]: (...args: any[]) => Action
   },
   S,
-  A extends Action<any>
+  A extends ActionType<any>
 >(
   prefix: string,
   {
@@ -139,7 +153,7 @@ export function duplicateWithMetaRedux<
     [key: string]: (...args: any[]) => Action
   },
   S,
-  A extends Action<any>,
+  A extends ActionType<any>,
   ExtMetaArgs extends any,
   ExtMetaResult extends object
 >(
