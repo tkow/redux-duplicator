@@ -13,7 +13,7 @@ export const recreateActionTypes = <T extends { [key in keyof T]: string }>(
   return Object.keys(actionTypes).reduce((data, key) => {
     return {
       ...data,
-      [key]: `${prefix}${actionTypes[key as keyof T]}`
+      [key]: `${prefix}/${actionTypes[key as keyof T]}`
     }
   }, {}) as { [key in keyof T]: string }
 }
@@ -28,15 +28,18 @@ export const recreateActionCreators = <
 ) => {
   return Object.keys(actionCreators).reduce(
     (records, key) => {
+      const type = `${prefix}/${actionCreators[key].toString()}`
+      let f = (...args: any[]): Action => {
+        const action = actionCreators[key](...args)
+        return {
+          ...action,
+          type
+        } as Action
+      }
+      f.toString = () => type
       return {
         ...records,
-        [key]: (...args: any[]): Action => {
-          const action = actionCreators[key](...args)
-          return {
-            ...action,
-            type: `${prefix}${action.type}`
-          } as Action
-        }
+        [key]: f
       }
     },
     {} as { [key in keyof ActionCreators]: ActionCreators[key] }
@@ -56,25 +59,26 @@ export const recreateActionMetaCreators = <
 ) => {
   return Object.keys(actionCreators).reduce(
     (records, key) => {
+      const type = `${prefix}/${actionCreators[key].toString()}`
+      let f = (...args: any[]): Action => {
+        let meta: object = metaCreator ? metaCreator(args.shift() as ExtMetaArgs) : {}
+        const action = actionCreators[key](...args)
+        if ((action as Action<{ meta: any }>).meta) {
+          meta = {
+            ...(action as Action<{ meta: any }>).meta,
+            ...meta
+          } as Action
+        }
+        return {
+          ...action,
+          type,
+          meta
+        } as const
+      }
+      f.toString = () => type
       return {
         ...records,
-        [key]: (...args: any[]): Action => {
-          let meta: object = metaCreator ? metaCreator(args.shift() as ExtMetaArgs) : {}
-          const action = actionCreators[key](...args)
-          if ((action as Action<{ meta: any }>).meta) {
-            meta = {
-              ...action,
-              ...(action as Action<{ meta: any }>).meta,
-              type: `${prefix}${action.type}`,
-              ...meta
-            } as Action
-          }
-          return {
-            ...action,
-            type: `${prefix}${action.type}`,
-            meta
-          } as const
-        }
+        [key]: f
       }
     },
     {} as {
@@ -103,7 +107,7 @@ export const reuseReducer = <S, A extends ActionType<any>>(
   reducer: Reducer<S, A>,
   prefix: string
 ): Reducer<S, A> => {
-  const matchPattern = new RegExp(`^${prefix}(.*)`)
+  const matchPattern = new RegExp(`^${prefix}\/(.*)`)
   return function(state: S, action: A) {
     const matcher = matchPattern.exec(action.type)
     if (matcher) {

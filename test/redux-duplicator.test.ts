@@ -31,7 +31,7 @@ const id = handleActions(
   initialState.id
 )
 
-const nameSpace = 'TEST/'
+const nameSpace = 'TEST'
 
 const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
   reducer: id,
@@ -53,7 +53,7 @@ const { reducer: _, actionTypes: __, actionCreators: actionMetaCreators } = dupl
 
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {
-    expect(actionTypes.SET_ID === 'TEST/SET_ID').toBeTruthy()
+    expect(actionTypes.SET_ID).toEqual('TEST/SET_ID')
   })
 })
 
@@ -71,6 +71,10 @@ describe('actionCreators Test', () => {
     const type = actionCreators.setId('test').type
     expect(type).toEqual('TEST/SET_ID')
   })
+  it('rewrite actionCreators toString', () => {
+    const type = actionCreators.setId.toString()
+    expect(type).toEqual('TEST/SET_ID')
+  })
 })
 
 describe('actionMetaCreators Test', () => {
@@ -78,5 +82,9 @@ describe('actionMetaCreators Test', () => {
     const result = actionMetaCreators.setId('id', 'test')
     expect(result.meta.id).toEqual('id')
     expect(result.payload).toEqual('test')
+  })
+  it('rewrite actionCreators toString', () => {
+    const type = actionMetaCreators.setId.toString()
+    expect(type).toEqual('TEST/SET_ID')
   })
 })
