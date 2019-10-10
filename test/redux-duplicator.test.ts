@@ -51,10 +51,6 @@ const { reducer: _, actionTypes: __, actionCreators: actionMetaCreators } = dupl
   })
 )
 
-const z = actionMetaCreators.setId('t', 'd')
-
-console.log(z.meta.id)
-
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {
     expect(actionTypes.SET_ID === 'TEST/SET_ID').toBeTruthy()
@@ -74,5 +70,13 @@ describe('actionCreators Test', () => {
   it('rewrite actionCreators type', () => {
     const type = actionCreators.setId('test').type
     expect(type).toEqual('TEST/SET_ID')
+  })
+})
+
+describe('actionMetaCreators Test', () => {
+  it('rewrite actionMetaCreators type', () => {
+    const result = actionMetaCreators.setId('id', 'test')
+    expect(result.meta.id).toEqual('id')
+    expect(result.payload).toEqual('test')
   })
 })

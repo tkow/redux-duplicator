@@ -59,7 +59,7 @@ export const recreateActionMetaCreators = <
       return {
         ...records,
         [key]: (...args: any[]): Action => {
-          let meta: object = metaCreator ? metaCreator(args.pop() as ExtMetaArgs) : {}
+          let meta: object = metaCreator ? metaCreator(args.shift() as ExtMetaArgs) : {}
           const action = actionCreators[key](...args)
           if ((action as Action<{ meta: any }>).meta) {
             meta = {
