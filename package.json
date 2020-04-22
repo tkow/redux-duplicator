@@ -1,6 +1,6 @@
 {
   "name": "redux-duplicator",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "keywords": [],
   "main": "dist/redux-duplicator.umd.js",
