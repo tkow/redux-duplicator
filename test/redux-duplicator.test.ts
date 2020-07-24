@@ -36,7 +36,7 @@ const { reducer, actionTypes, actionCreators } = duplicateRedux(nameSpace, {
 
 describe('actionTypes Test', () => {
   it('rewrite action types', () => {
-    expect(actionTypes.SET_ID === 'TEST/SET_ID').toBeTruthy()
+    expect(actionTypes!.SET_ID === 'TEST/SET_ID').toBeTruthy()
   })
 })
 
