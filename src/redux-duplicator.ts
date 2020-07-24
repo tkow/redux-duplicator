@@ -5,16 +5,27 @@ type GeneralActionCreator<IAction extends Action<string> = Action<string>> = {
   type?: string
 }
 
-export const reuseActionTypes = <T extends { [key: string]: string }>(
-  actionTypes: T,
+export const reuseActionTypes = (
+  actionTypes: { [key: string]: string },
   prefix: string
-) => {
+): { [key: string]: string } => {
   return Object.keys(actionTypes).reduce((data, key) => {
     return {
       ...data,
       [key]: `${prefix}${actionTypes[key]}`
     }
-  }, {}) as { [key in keyof T]: string }
+  }, {})
+}
+
+export type WiddenActionCreator<IActionCreator extends GeneralActionCreator,IAction extends Action<string> =Action<string>> = {
+  (...args: Parameters<IActionCreator>): Omit<ReturnType<IActionCreator>,'type'> & {type: string}
+  type: IActionCreator extends {type: string} ? string : undefined
+}
+
+export type WiddenActionCreators<ActionCreators extends {
+  [key: string]: GeneralActionCreator
+}> = {
+  [key in keyof ActionCreators]: WiddenActionCreator<ActionCreators[key]>
 }
 
 export const reuseActionCreators = <
@@ -25,7 +36,7 @@ export const reuseActionCreators = <
   actionCreators: ActionCreators,
   prefix: string
 ) => {
-  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: ActionCreators[key] }>(
+  return Object.keys(actionCreators).reduce<{ [key in keyof ActionCreators]: WiddenActionCreator<ActionCreators[key]> }>(
     (records, key) => {
       return {
         ...records,
@@ -38,7 +49,7 @@ export const reuseActionCreators = <
         }
       }
     },
-    {} as { [key in keyof ActionCreators]: ActionCreators[key] }
+    {} as { [key in keyof ActionCreators]: WiddenActionCreator<ActionCreators[key]> }
   )
 }
 
@@ -61,14 +72,7 @@ export const reuseReducer = <S, A extends Action<any>>(
   } as Reducer<S, A>
 }
 
-type ExtractActionCreator<ActionCreators extends {
-  [key: string]: GeneralActionCreator
-}> = {
-  [key in keyof ActionCreators]: ActionCreators[key]
-}
-
 export default function duplicateRedux<
-  ActionTypes extends { [key: string]: string },
   ActionCreators extends {
     [key: string]: GeneralActionCreator
   },
@@ -81,24 +85,23 @@ export default function duplicateRedux<
     actionCreators,
     reducer
   }: {
-    actionTypes?: ActionTypes
+    actionTypes?: { [key: string]: string },
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
   }
 ): {
-  actionTypes?: ActionTypes
-  actionCreators: ExtractActionCreator<ActionCreators>
+  actionTypes?: { [key: string]: string }
+  actionCreators: WiddenActionCreators<ActionCreators>
   reducer: Reducer<S, A>
 } {
   let result = {
     reducer: reuseReducer(reducer, prefix),
-    // actionTypes: reuseActionTypes(actionTypes, prefix) as ActionTypes,
-    actionCreators: reuseActionCreators(actionCreators, prefix) as ExtractActionCreator<ActionCreators>
+    actionCreators: reuseActionCreators(actionCreators, prefix)
   }
   if (actionTypes) {
     return {
       ...result,
-      actionTypes: reuseActionTypes(actionTypes, prefix) as ActionTypes,
+      actionTypes: reuseActionTypes(actionTypes, prefix),
     }
   }
   return result

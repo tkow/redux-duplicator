@@ -1,4 +1,4 @@
-import duplicateRedux from '../src/redux-duplicator'
+import duplicateRedux, {reuseActionCreators} from '../src/redux-duplicator'
 import {
   createAction,
   createReducer,
@@ -28,6 +28,10 @@ const _actionCreators = {
   setId,
   setName
 }
+
+const z = reuseActionCreators(_actionCreators, 'test')
+const d = z.setId('id').payload
+
 type TestActionCreators = typeof _actionCreators
 
 const testReducer = createReducer<TestState, TestActionCreators>(initialState(), {
@@ -54,6 +58,8 @@ const { reducer, actionCreators } = duplicateRedux(nameSpace, {
   actionCreators: _actionCreators
 })
 
+const testSetIdType: string = actionCreators.setId.type
+const testSetNameType: string = actionCreators.setName.type
 
 describe('Reducer Test', () => {
   it('rewrite reducer match', () => {
@@ -66,7 +72,13 @@ describe('Reducer Test', () => {
 
 describe('actionCreators Test', () => {
   it('rewrite actionCreators type', () => {
+    const result = actionCreators.setId('test')
     const type = actionCreators.setId('test').type
     expect(type).toEqual('TEST/setId')
+  })
+  it('rewrite actionCreators type', () => {
+    const result = actionCreators.setName(0)
+    const type = actionCreators.setName(0).type
+    expect(type).toEqual('TEST/setName')
   })
 })
