@@ -55,10 +55,11 @@ export const reuseActionCreators = <
 
 export const reuseReducer = <S, A extends Action<any>>(
   reducer: Reducer<S, A>,
-  prefix: string
+  prefix: string,
+  initialState?: S
 ): Reducer<S, A> => {
   const matchPattern = new RegExp(`^${prefix}(.*)`)
-  return function(state: S, action: A) {
+  return function(state: S | undefined = initialState, action: A) {
     const matcher = matchPattern.exec(action.type)
     if (matcher) {
       const originalAction = {
@@ -83,11 +84,13 @@ export default function duplicateRedux<
   {
     actionTypes,
     actionCreators,
-    reducer
+    reducer,
+    initialState,
   }: {
     actionTypes?: { [key: string]: string },
     actionCreators: ActionCreators
     reducer: Reducer<S, A>
+    initialState?: S
   }
 ): {
   actionTypes?: { [key: string]: string }
@@ -95,7 +98,7 @@ export default function duplicateRedux<
   reducer: Reducer<S, A>
 } {
   let result = {
-    reducer: reuseReducer(reducer, prefix),
+    reducer: reuseReducer(reducer, prefix, initialState),
     actionCreators: reuseActionCreators(actionCreators, prefix)
   }
   if (actionTypes) {
