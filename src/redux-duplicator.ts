@@ -1,6 +1,8 @@
-import { Reducer, Action } from 'redux'
+import { Reducer, Action, AnyAction } from 'redux'
 
-type GeneralActionCreator<IAction extends Action<string> = Action<string>> = {
+type ActionSupported = Function | AnyAction
+
+type GeneralActionCreator<IAction extends ActionSupported = AnyAction> = {
   (...args: any[]): IAction
   type?: string
 }
@@ -17,7 +19,7 @@ export const reuseActionTypes = (
   }, {})
 }
 
-export type WiddenActionCreator<IActionCreator extends GeneralActionCreator,IAction extends Action<string> =Action<string>> = {
+export type WiddenActionCreator<IActionCreator extends GeneralActionCreator> = {
   (...args: Parameters<IActionCreator>): Omit<ReturnType<IActionCreator>,'type'> & {type: string}
   type: IActionCreator extends {type: string} ? string : undefined
 }
@@ -40,8 +42,10 @@ export const reuseActionCreators = <
     (records, key) => {
       return {
         ...records,
-        [key]: (...args: any[]): Action<string> => {
-          const { type,  ..._restAction} = actionCreators[key](...args)
+        [key]: (...args: any[]): AnyAction => {
+          const action  = actionCreators[key](...args)
+          if(typeof action === 'function') return action
+          const { type,  ..._restAction} = action
           return {
             ..._restAction,
             type: `${prefix}${type}`
@@ -53,13 +57,13 @@ export const reuseActionCreators = <
   )
 }
 
-export const reuseReducer = <S, A extends Action<any>>(
-  reducer: Reducer<S, A>,
+export const reuseReducer = <S>(
+  reducer: Reducer<S, AnyAction>,
   prefix: string,
   initialState?: S
-): Reducer<S, A> => {
+): Reducer<S, AnyAction> => {
   const matchPattern = new RegExp(`^${prefix}(.*)`)
-  return function(state: S | undefined = initialState, action: A) {
+  return function(state: S | undefined = initialState, action: AnyAction) {
     const matcher = matchPattern.exec(action.type)
     if (matcher) {
       const originalAction = {
@@ -70,7 +74,7 @@ export const reuseReducer = <S, A extends Action<any>>(
     } else {
       return state
     }
-  } as Reducer<S, A>
+  } as Reducer<S, AnyAction>
 }
 
 export default function duplicateRedux<
@@ -78,7 +82,6 @@ export default function duplicateRedux<
     [key: string]: GeneralActionCreator
   },
   S,
-  A extends Action<any>
 >(
   prefix: string,
   {
@@ -89,13 +92,13 @@ export default function duplicateRedux<
   }: {
     actionTypes?: { [key: string]: string },
     actionCreators: ActionCreators
-    reducer: Reducer<S, A>
+    reducer: Reducer<S, AnyAction>
     initialState?: S
   }
 ): {
   actionTypes?: { [key: string]: string }
   actionCreators: WiddenActionCreators<ActionCreators>
-  reducer: Reducer<S, A>
+  reducer: Reducer<S, AnyAction>
 } {
   let result = {
     reducer: reuseReducer(reducer, prefix, initialState),
